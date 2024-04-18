@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "dagster.name" $ -}}-daemon
+  labels:
+    {{- include "dagster.labels" $ | nindent 4 }}
+    component: dagster-daemon
+    deployment: daemon
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "dagster.selectorLabels" $ | nindent 6 }}
+      component: dagster-daemon
+      deployment: daemon
+  template:
+    metadata:
+      labels:
+        {{- include "dagster.selectorLabels" $ | nindent 8 }}
+        component: dagster-daemon
+        deployment: daemon
+      annotations:
+        checksum/dagster-workspace: {{ include (print $.Template.BasePath "/configmap-workspace.yaml") . | sha256sum }}
+        checksum/dagster-instance: {{ include (print $.Template.BasePath "/configmap-instance.yaml") . | sha256sum }}
+    spec:
+      serviceAccountName: {{ include "dagster.serviceAccountName" $ }}
+      automountServiceAccountToken: true
+      containers:
+        - name: {{ include "dagster.name" $ -}}-daemon
+          imagePullPolicy: {{ .Values.daemon.image.pullPolicy }}
+          image: {{ .Values.daemon.image }}
+          command: [
+            "/bin/bash",
+            "-c",
+            "dagster-daemon run -w /dagster-workspace/workspace.yaml",
+          ]
+          envFrom:
+            - configMapRef:
+                name: {{ template "dagster.name" $ }}-daemon-env
+            - secretRef:
+                name: {{ include "dagster.postgresql.secretName" . }}
+            - secretRef:
+                name: {{ include "dagster.celery.secretName" . }}
+          volumeMounts:
+            - name: {{ template "dagster.name" . }}-instance
+              mountPath: "{{ $.Values.global.dagsterHome }}/dagster.yaml"
+              subPath: dagster.yaml
+            - name: {{ template "dagster.name" . }}-workspace
+              mountPath: "/dagster-workspace/"
+
+          resources:
+            {{- toYaml .Values.dagsterDaemon.resources | nindent 12 }}
+          {{- if .Values.dagsterDaemon.livenessProbe }}
+          livenessProbe:
+            {{- toYaml .Values.dagsterDaemon.livenessProbe | nindent 12 }}
+          {{- end }}
+          {{- if .Values.dagsterDaemon.readinessProbe }}
+          readinessProbe:
+            {{- toYaml .Values.dagsterDaemon.readinessProbe | nindent 12 }}
+          {{- end }}
+          {{- if .Values.dagsterDaemon.startupProbe.enabled}}
+          {{- $startupProbe := omit .Values.dagsterDaemon.startupProbe "enabled" }}
+          startupProbe:
+            {{- toYaml $startupProbe | nindent 12 }}
+          {{- end }}
+      nodeSelector:
+        {{- toYaml .Values.dagsterDaemon.nodeSelector | nindent 8 }}
+      volumes:
+        - name: dagster-instance
+          configMap:
+            name: {{ template "dagster.fullname" $ }}-instance
+        {{- if $userDeployments.enabled }}
+        - name: dagster-workspace-yaml
+          configMap:
+            name: {{ include "dagster.workspace.configmapName" . }}
+        {{- end }}
+        {{- if .Values.dagsterDaemon.volumes }}
+        {{- range $volume := .Values.dagsterDaemon.volumes }}
+        - {{- $volume | toYaml | nindent 10 }}
+        {{- end }}
+        {{- end }}
+      affinity:
+        {{- toYaml .Values.dagsterDaemon.affinity | nindent 8 }}
+      tolerations:
+        {{- toYaml .Values.dagsterDaemon.tolerations | nindent 8 }}
+      {{- if .Values.dagsterDaemon.schedulerName }}
+      schedulerName: {{ .Values.dagsterDaemon.schedulerName }}
+      {{- end }}

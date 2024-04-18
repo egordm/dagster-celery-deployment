@@ -1,0 +1,16 @@
+---
+apiVersion: v2
+name: dagster
+description: The data orchestration platform built for productivity.
+type: application
+version: 0.1.0
+appVersion: 0.1.0
+dependencies:
+  - name: postgresql
+    version: 15.2.5
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled
+  - name: redis
+    version: 19.1.1
+    repository: https://charts.bitnami.com/bitnami
+    condition: redis.enabled

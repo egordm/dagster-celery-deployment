@@ -1,0 +1,94 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "dagster.name" . }}-instance
+  labels:
+    app: {{ template "dagster.name" . }}
+    chart: {{ template "dagster.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+data:
+  dagster.yaml: |
+    scheduler:
+      module: dagster.core.scheduler
+      class: DagsterDaemonScheduler
+      config:
+
+    schedule_storage:
+      module: dagster_postgres.schedule_storage
+      class: PostgresScheduleStorage
+      config:
+        {{- include "dagster.instance.postgresqlConfig" . | indent 8 }}
+
+    run_launcher:
+      class: DefaultRunLauncher
+
+    run_storage:
+      module: dagster_postgres.run_storage
+      class: PostgresRunStorage
+      config:
+        {{- include "dagster.instance.postgresqlConfig" . | indent 8 }}
+
+    event_log_storage:
+      module: dagster_postgres.event_log
+      class: PostgresEventLogStorage
+      config:
+        {{- include "dagster.instance.postgresqlConfig" . | indent 8 }}
+
+    run_coordinator:
+      module: dagster.core.run_coordinator
+      class: QueuedRunCoordinator
+      config:
+        max_concurrent_runs: 50
+        tag_concurrency_limits:
+        dequeue_interval_seconds: 2
+        dequeue_use_threads: true
+        dequeue_num_workers: 16
+
+    compute_logs:
+      module: dagster_aws.s3.compute_log_manager
+      class: S3ComputeLogManager
+      bucket:
+        env: DAGSTER_COMPUTE_LOGS_BUCKET
+      endpoint_url:
+        env: DAGSTER_S3_ENDPOINT
+      prefix: compute_logs
+
+    run_monitoring:
+      enabled: true
+      start_timeout_seconds: 300
+      poll_interval_seconds: 120
+      free_slots_after_run_end_seconds: 0
+
+    run_retries:
+        enabled: true
+        max_retries: 0
+
+    sensors:
+      use_threads: true
+      num_workers: 4
+
+    schedules:
+      use_threads: true
+      num_workers: 4
+
+    retention:
+      sensor:
+        purge_after_days:
+          failure: -1
+          skipped: 7
+          started: -1
+          success: -1
+      schedule:
+        purge_after_days: -1
+      auto_materialize:
+        purge_after_days:
+          failure: -1
+          skipped: 7
+          started: -1
+          success: -1
+
+    telemetry:
+      enabled: false
+
+

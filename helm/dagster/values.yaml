@@ -1,0 +1,32 @@
+global:
+  dagsterHome: "/opt/dagster/dagster_home"
+
+daemon:
+  image:
+    # When a tag is not supplied for a Dagster provided image,
+    # it will default as the Helm chart version.
+    repository: "docker.io/dagster/dagster-celery-k8s:latest"
+    pullPolicy: Always
+
+postgresql:
+  enabled: true
+
+  postgresqlDatabase: test
+  postgresqlUsername: test
+  postgresqlPassword: test
+
+  service:
+    port: 5432
+
+redis:
+  enabled: true
+
+  architecture: standalone
+
+  usePassword: false
+  password: "test"
+
+  port: 6379
+
+  brokerDbNumber: 0
+  backendDbNumber: 0

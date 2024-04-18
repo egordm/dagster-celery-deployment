@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "example"
+version = "0.1.0"
+description = ""
+authors = ["Egor Dmitriev <egordmitriev2@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.11,<3.13"
+dagster = "^1.7.1"
+dagster-celery = {extras = ["redis"], version = "^0.23.2"}
+dagster-postgres = "^0.23.2"
+dagster-aws = "^0.23.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
