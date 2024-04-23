@@ -1,44 +1,42 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "dagster.name" $ -}}-daemon
+  name: {{ include "dagster.name" $ -}}-webserver
   labels:
-    {{- include "dagster.labels" $ | nindent 4 }}
-    component: dagster-daemon
-    deployment: daemon
+    {{- include "dagster.labels" . | nindent 4 }}
+    component: dagster-webserver
+    deployment: webserver
 spec:
   replicas: 1
-  strategy:
-    type: Recreate
   selector:
     matchLabels:
-      {{- include "dagster.selectorLabels" $ | nindent 6 }}
-      component: dagster-daemon
-      deployment: daemon
+      {{- include "dagster.selectorLabels" . | nindent 6 }}
+      component: dagster-webserver
+      deployment: webserver
   template:
     metadata:
       labels:
         {{- include "dagster.selectorLabels" $ | nindent 8 }}
-        component: dagster-daemon
-        deployment: daemon
+        component: dagster-webserver
+        deployment: webserver
       annotations:
         checksum/dagster-workspace: {{ include (print $.Template.BasePath "/configmap-workspace.yaml") . | sha256sum }}
         checksum/dagster-instance: {{ include (print $.Template.BasePath "/configmap-instance.yaml") . | sha256sum }}
     spec:
-      serviceAccountName: {{ include "dagster.serviceAccountName" $ }}
+      serviceAccountName: {{ include "dagster.serviceAccountName" . }}
       automountServiceAccountToken: true
       containers:
-        - name: {{ include "dagster.name" $ -}}-daemon
-          imagePullPolicy: {{ .Values.daemon.image.pullPolicy }}
-          image: {{ .Values.daemon.image.repository }}
+        - name: {{ include "dagster.name" $ -}}-webserver
+          imagePullPolicy: {{ .Values.webserver.image.pullPolicy }}
+          image: {{ .Values.webserver.image.repository }}
           command: [
             "/bin/bash",
             "-c",
-            "dagster-daemon run -w /dagster-workspace/workspace.yaml",
+            "dagster-webserver -h 0.0.0.0 -p {{ .Values.webserver.service.port }} -w /dagster-workspace/workspace.yaml"
           ]
           envFrom:
             - configMapRef:
-                name: {{ template "dagster.name" $ }}-daemon-env
+                name: {{ template "dagster.name" $ }}-webserver-env
             - secretRef:
                 name: {{ include "dagster.postgresql.secretName" . }}
             - secretRef:
@@ -50,8 +48,12 @@ spec:
             - name: dagster-workspace-yaml
               mountPath: "/dagster-workspace/workspace.yaml"
               subPath: workspace.yaml
+          ports:
+            - name: http
+              containerPort: {{ .Values.webserver.service.port }}
+              protocol: TCP
           resources:
-            {{- toYaml .Values.daemon.resources | nindent 12 }}
+            {{- toYaml .Values.webserver.resources | nindent 12 }}
       volumes:
         - name: dagster-instance-yaml
           configMap:

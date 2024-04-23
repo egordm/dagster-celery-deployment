@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "dagster.name" . }}-workspace
+  labels:
+    app: {{ template "dagster.name" . }}
+    chart: {{ template "dagster.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+data:
+  workspace.yaml: |
+    {{- if .Values.codelocations }}
+    load_from:
+      {{- range $deployment := .Values.codelocations }}
+      - grpc_server:
+          host: "{{ include "dagster.name" $ -}}-{{- $deployment.name }}"
+          port: 3030
+          location_name: {{ $deployment.name }}
+      {{- end }}
+    {{- else }}
+    load_from: []
+    {{- end }}

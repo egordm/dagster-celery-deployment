@@ -1,0 +1,14 @@
+{{ range $deployment := .Values.codelocations }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "dagster.name" $ -}}-{{- $deployment.name }}-codelocation-env
+  labels:
+    app: {{ template "dagster.name" $ }}
+    chart: {{ template "dagster.chart" $ }}
+    release: {{ $.Release.Name }}
+    heritage: {{ $.Release.Service }}
+data:
+  HELLO: "WORLD"
+---
+{{ end }}

@@ -12,7 +12,6 @@ data:
     scheduler:
       module: dagster.core.scheduler
       class: DagsterDaemonScheduler
-      config:
 
     schedule_storage:
       module: dagster_postgres.schedule_storage
@@ -21,6 +20,7 @@ data:
         {{- include "dagster.instance.postgresqlConfig" . | indent 8 }}
 
     run_launcher:
+      module: dagster._core.launcher
       class: DefaultRunLauncher
 
     run_storage:
@@ -48,11 +48,12 @@ data:
     compute_logs:
       module: dagster_aws.s3.compute_log_manager
       class: S3ComputeLogManager
-      bucket:
-        env: DAGSTER_COMPUTE_LOGS_BUCKET
-      endpoint_url:
-        env: DAGSTER_S3_ENDPOINT
-      prefix: compute_logs
+      config:
+        bucket:
+          env: DAGSTER_COMPUTE_LOGS_BUCKET
+        endpoint_url:
+          env: DAGSTER_S3_ENDPOINT
+        prefix: compute_logs
 
     run_monitoring:
       enabled: true

@@ -1,0 +1,58 @@
+{{ range $deployment := .Values.codelocations }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "dagster.name" $ -}}-{{- $deployment.name }}
+  labels:
+    {{- include "dagster.labels" $ | nindent 4 }}
+    component: user-deployments
+    deployment: {{ $deployment.name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "dagster.selectorLabels" $ | nindent 6 }}
+      component: user-deployments
+      deployment: {{ $deployment.name }}
+  template:
+    metadata:
+      labels:
+        {{- include "dagster.selectorLabels" $ | nindent 8 }}
+        component: user-deployments
+        deployment: {{ $deployment.name }}
+      annotations:
+        checksum/dagster-user-deployment: {{ $deployment | toJson | sha256sum }}
+    spec:
+      serviceAccountName: {{ include "dagster.serviceAccountName" $ }}
+      automountServiceAccountToken: true
+      containers:
+        - name: {{ $deployment.name }}
+          imagePullPolicy: {{ $deployment.image.pullPolicy }}
+          image: {{ $deployment.image.repository }}
+          envFrom:
+            - configMapRef:
+                name: {{ template "dagster.name" $ }}-codelocations-shared-env
+            - configMapRef:
+                name: {{ template "dagster.name" $ }}-{{ $deployment.name }}-codelocation-env
+            - secretRef:
+                name: {{ include "dagster.postgresql.secretName" $ }}
+            - secretRef:
+                name: {{ include "dagster.celery.secretName" $ }}
+          resources: {{ $deployment.resources | toYaml | nindent 12 }}
+          readinessProbe:
+            exec:
+              command: ["dagster", "api", "grpc-health-check", "-p", "3030"]
+            periodSeconds: 20
+            timeoutSeconds: 10
+            successThreshold: 1
+            failureThreshold: 15
+          volumeMounts:
+            - name: {{ template "dagster.name" $ }}-instance
+              mountPath: "{{ $.Values.global.dagsterHome }}/dagster.yaml"
+              subPath: dagster.yaml
+      volumes:
+        - name: dagster-instance
+          configMap:
+            name: {{ template "dagster.name" $ }}-instance
+---
+{{ end }}

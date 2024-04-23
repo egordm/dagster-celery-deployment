@@ -6,14 +6,62 @@ daemon:
     # When a tag is not supplied for a Dagster provided image,
     # it will default as the Helm chart version.
     repository: "docker.io/dagster/dagster-celery-k8s:latest"
-    pullPolicy: Always
+    pullPolicy: IfNotPresent
+
+  resources:
+    requests:
+      cpu: 0.5
+      memory: 1Gi
+    limits:
+      cpu: 1
+      memory: 2Gi
+
+webserver:
+  image:
+    # When a tag is not supplied for a Dagster provided image,
+    # it will default as the Helm chart version.
+    repository: "docker.io/dagster/dagster-celery-k8s:latest"
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 80
+
+  resources:
+    requests:
+      cpu: 0.5
+      memory: 1Gi
+    limits:
+      cpu: 1
+      memory: 2Gi
+
+codelocations:
+  - name: example
+    image:
+#        repository: "docker.io/dagster/dagster-celery-k8s:latest"
+        repository: "dagster-example-user-code:latest"
+        pullPolicy: IfNotPresent
+
+flower:
+  image:
+    repository: "docker.io/mher/flower"
+    tag: "0.9.5"
+    pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    annotations: {}
+    port: 5555
+
+
 
 postgresql:
   enabled: true
 
-  postgresqlDatabase: test
-  postgresqlUsername: test
-  postgresqlPassword: test
+  auth:
+    database: test
+    username: test
+    password: test
 
   service:
     port: 5432

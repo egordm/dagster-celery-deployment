@@ -1,0 +1,21 @@
+{{ range $deployment := .Values.codelocations }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "dagster.name" $ -}}-{{- $deployment.name }}
+  labels:
+    {{- include "dagster.labels" $ | nindent 4 }}
+    component: user-deployments
+    deployment: {{ $deployment.name }}
+spec:
+  type: "ClusterIP"
+  ports:
+    - port: 3030
+      protocol: TCP
+      name: grpc
+  selector:
+    {{- include "dagster.selectorLabels" $ | nindent 4 }}
+    component: user-deployments
+    deployment: {{ $deployment.name }}
+---
+{{ end }}

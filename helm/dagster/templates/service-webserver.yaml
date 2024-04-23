@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "dagster.name" . }}-webserver
+  labels:
+    {{- include "dagster.labels" . | nindent 4 }}
+    component: dagster-webserver
+spec:
+  type: {{ .Values.webserver.service.type | default "ClusterIP" }}
+  ports:
+    - port: {{ .Values.webserver.service.port | default 80 }}
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "dagster.selectorLabels" . | nindent 4 }}
+    component: dagster-webserver
