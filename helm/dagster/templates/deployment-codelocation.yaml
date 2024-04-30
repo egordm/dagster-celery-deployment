@@ -5,23 +5,23 @@ metadata:
   name: {{ include "dagster.name" $ -}}-{{- $deployment.name }}
   labels:
     {{- include "dagster.labels" $ | nindent 4 }}
-    component: user-deployments
+    component: codelocation
     deployment: {{ $deployment.name }}
 spec:
   replicas: 1
   selector:
     matchLabels:
       {{- include "dagster.selectorLabels" $ | nindent 6 }}
-      component: user-deployments
+      component: codelocation
       deployment: {{ $deployment.name }}
   template:
     metadata:
       labels:
         {{- include "dagster.selectorLabels" $ | nindent 8 }}
-        component: user-deployments
+        component: codelocation
         deployment: {{ $deployment.name }}
       annotations:
-        checksum/dagster-user-deployment: {{ $deployment | toJson | sha256sum }}
+        checksum/dagster-user-codelocation: {{ $deployment | toJson | sha256sum }}
     spec:
       serviceAccountName: {{ include "dagster.serviceAccountName" $ }}
       automountServiceAccountToken: true
@@ -47,11 +47,11 @@ spec:
             successThreshold: 1
             failureThreshold: 15
           volumeMounts:
-            - name: {{ template "dagster.name" $ }}-instance
+            - name: {{ template "dagster.name" $ }}-instance-yaml
               mountPath: "{{ $.Values.global.dagsterHome }}/dagster.yaml"
               subPath: dagster.yaml
       volumes:
-        - name: dagster-instance
+        - name: dagster-instance-yaml
           configMap:
             name: {{ template "dagster.name" $ }}-instance
 ---

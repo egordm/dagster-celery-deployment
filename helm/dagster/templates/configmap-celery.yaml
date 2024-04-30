@@ -1,12 +1,9 @@
-{{/*
-{{- $celeryK8sRunLauncherConfig := .Values.runLauncher.config.celeryK8sRunLauncher }}
-{{ range $queue := $celeryK8sRunLauncherConfig.workerQueues }}
-{{- $sharedConfig := $celeryK8sRunLauncherConfig.configSource | default dict }}
-{{- $individualConfig := $queue.configSource | default dict }}
+{{ range $deployment := .Values.codelocations }}
+{{ range $worker := $deployment.workers }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ template "dagster.fullname" $ }}-celery-{{- $queue.name }}
+  name: {{ template "dagster.name" $ }}-celery-{{- $deployment.name }}-{{- $worker.name }}
   labels:
     app: {{ template "dagster.name" $ }}
     chart: {{ template "dagster.chart" $ }}
@@ -20,7 +17,7 @@ data:
           env: DAGSTER_CELERY_BROKER_URL
         backend:
           env: DAGSTER_CELERY_BACKEND_URL
-        config_source: {{ merge $individualConfig $sharedConfig | toYaml | nindent 10 }}
+{{/*        config_source: {{ merge $individualConfig $sharedConfig | toYaml | nindent 10 }}*/}}
 ---
 {{- end }}
-*/}}
+{{- end }}

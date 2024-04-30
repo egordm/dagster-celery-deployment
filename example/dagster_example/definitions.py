@@ -1,3 +1,5 @@
+import os
+
 from dagster import Definitions, StaticPartitionsDefinition, asset, define_asset_job, EnvVar
 
 from dagster_celery import celery_executor
@@ -13,6 +15,7 @@ example_partition_def = StaticPartitionsDefinition(
 def partitioned_asset():
     print("Hello world!!")
 
+print(os.getenv("DAGSTER_CELERY_BROKER_URL"))
 
 default_executor = celery_executor.configured(
     config_or_config_fn={

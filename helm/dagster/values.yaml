@@ -38,9 +38,29 @@ webserver:
 codelocations:
   - name: example
     image:
-#        repository: "docker.io/dagster/dagster-celery-k8s:latest"
-        repository: "dagster-example-user-code:latest"
-        pullPolicy: IfNotPresent
+#     repository: "docker.io/dagster/dagster-celery-k8s:latest"
+      repository: "dagster-example-user-code:v2"
+      pullPolicy: IfNotPresent
+
+    resources:
+      requests:
+        cpu: 0.5
+        memory: 1Gi
+      limits:
+        cpu: 1
+        memory: 2Gi
+
+    workers:
+      - name: worker-1
+        resources:
+          requests:
+            cpu: 0.5
+            memory: 1Gi
+          limits:
+            cpu: 1
+            memory: 2Gi
+
+
 
 flower:
   image:
@@ -71,10 +91,20 @@ redis:
 
   architecture: standalone
 
-  usePassword: false
-  password: "test"
+  auth:
+    enabled: true
+    password: "test"
 
   port: 6379
 
   brokerDbNumber: 0
   backendDbNumber: 0
+
+minio:
+  enabled: true
+
+  defaultBuckets: "dagster"
+
+  auth:
+    rootUser: "admin"
+    rootPassword: "helloworld"

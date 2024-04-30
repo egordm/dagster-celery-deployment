@@ -1,0 +1,79 @@
+{{ range $deployment := .Values.codelocations }}
+{{ range $worker := $deployment.workers }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "dagster.name" $ -}}-{{- $deployment.name }}-{{- $worker.name }}
+  labels:
+    {{- include "dagster.labels" $ | nindent 4 }}
+    component: celery-worker
+    deployment: {{ $deployment.name }}-{{ $worker.name }}
+spec:
+  replicas: {{ $worker.replicas | default 1 }}
+  selector:
+    matchLabels:
+      {{- include "dagster.selectorLabels" $ | nindent 6 }}
+      component: celery-worker
+      deployment: {{ $deployment.name }}-{{ $worker.name }}
+  template:
+    metadata:
+      labels:
+        {{- include "dagster.selectorLabels" $ | nindent 8 }}
+        component: celery-worker
+        deployment: {{ $deployment.name }}-{{ $worker.name }}
+      annotations:
+        checksum/dagster-user-codelocation: {{ $deployment | toJson | sha256sum }}
+        checksum/dagster-worker: {{ $worker | toJson | sha256sum }}
+    spec:
+      serviceAccountName: {{ include "dagster.serviceAccountName" $ }}
+      automountServiceAccountToken: true
+      containers:
+        - name: {{ $deployment.name }}-{{ $worker.name }}
+          imagePullPolicy: {{ $deployment.image.pullPolicy }}
+          image: {{ $deployment.image.repository }}
+          command: ["dagster-celery"]
+          args: [
+            "worker", "start", "-A", "dagster_celery.app", "-y",
+            "{{ $.Values.global.dagsterHome }}/celery-config.yaml",
+{{/*            "-q", "{{- $queue.name -}}", {{- if $queue.additionalCeleryArgs -}}"--",*/}}
+{{/*            "{{- join "\",\"" $queue.additionalCeleryArgs -}}" {{- end -}}*/}}
+          ]
+          envFrom:
+            - configMapRef:
+                name: {{ template "dagster.name" $ }}-codelocations-shared-env
+            - configMapRef:
+                name: {{ template "dagster.name" $ }}-{{ $deployment.name }}-codelocation-env
+            - secretRef:
+                name: {{ include "dagster.postgresql.secretName" $ }}
+            - secretRef:
+                name: {{ include "dagster.celery.secretName" $ }}
+          volumeMounts:
+            - name: dagster-instance-yaml
+              mountPath: "{{ $.Values.global.dagsterHome }}/dagster.yaml"
+              subPath: dagster.yaml
+            - name: dagster-celery-yaml
+              mountPath: "{{ $.Values.global.dagsterHome }}/celery-config.yaml"
+              subPath: celery.yaml
+          resources:
+            {{- toYaml $worker.resources | nindent 12 }}
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - dagster-celery status -A dagster_celery.app -y {{ $.Values.global.dagsterHome }}/celery-config.yaml | grep "${HOSTNAME}:.*OK"
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+      volumes:
+        - name: dagster-instance-yaml
+          configMap:
+            name: {{ template "dagster.name" $ }}-instance
+        - name: dagster-celery-yaml
+          configMap:
+            name: {{ template "dagster.name" $ }}-celery-{{- $deployment.name }}-{{- $worker.name }}
+---
+{{ end }}
+{{ end }}

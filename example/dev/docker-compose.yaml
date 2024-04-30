@@ -59,7 +59,7 @@ services:
     build:
       context: ..
       dockerfile: ./Dockerfile
-    image: dagster-example-user-code:latest
+    image: dagster-example-user-code:v2
     env_file: docker/docker.env
     volumes:
       - ./dagster.yaml:/app/dagster.yaml
@@ -70,7 +70,7 @@ services:
       - daemon
 
   worker:
-    image: dagster-example-user-code:latest
+    image: dagster-example-user-code:v2
     command: dagster-celery worker start -y /app/celery.yaml -A dagster_celery.app
     restart: on-failure
     env_file: docker/docker.env

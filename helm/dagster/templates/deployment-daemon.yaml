@@ -39,6 +39,8 @@ spec:
           envFrom:
             - configMapRef:
                 name: {{ template "dagster.name" $ }}-daemon-env
+            - configMapRef:
+                name: {{ template "dagster.name" $ }}-daemon-env
             - secretRef:
                 name: {{ include "dagster.postgresql.secretName" . }}
             - secretRef:
